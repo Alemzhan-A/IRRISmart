@@ -4,15 +4,26 @@ import connectDB from "@/lib/db/mongodb";
 import PushSubscription from "@/lib/db/models/PushSubscription";
 import { getAuthUser } from "@/lib/auth/middleware";
 
-// Configure web-push with VAPID keys
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
-const vapidEmail = process.env.VAPID_EMAIL || "mailto:noreply@irrismart.com";
-
-webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
-
 export async function POST(request: NextRequest) {
   try {
+    // Configure web-push with VAPID keys
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+    const vapidEmail = process.env.VAPID_EMAIL || "mailto:noreply@irrismart.com";
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return NextResponse.json(
+        {
+          error: "Push notifications not configured",
+          message: "VAPID keys are missing"
+        },
+        { status: 503 }
+      );
+    }
+
+    // Set VAPID details for this request
+    webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+
     const authUser = getAuthUser(request);
 
     if (!authUser) {
@@ -97,7 +108,7 @@ export async function POST(request: NextRequest) {
       stats: {
         total: subscriptions.length,
         successful,
-        failed,
+failed,
       },
       results: results.map((r) =>
         r.status === "fulfilled" ? r.value : { success: false, error: r.reason }
