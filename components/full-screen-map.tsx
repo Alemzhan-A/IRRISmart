@@ -200,40 +200,44 @@ export function FullScreenMap() {
       <CreateZoneModal />
       <div className="relative h-screen w-full">
         {/* Floating Controls */}
-        <div className="absolute top-4 left-4 lg:left-6 z-10 flex flex-col gap-3">
-          <Button 
+        <div className="absolute top-4 left-16 lg:left-4 z-10 flex flex-col gap-2 sm:gap-3">
+          <Button
             onClick={handleAddZone}
             disabled={!isDrawReady}
+            size="sm"
             className={cn(
-              "shadow-lg transition-all",
+              "shadow-lg transition-all sm:h-10",
               !isDrawReady && "opacity-50 cursor-not-allowed",
               isDrawingMode
                 ? "bg-green-600 hover:bg-green-700"
                 : "bg-primary hover:bg-primary/90"
             )}
           >
-            <Plus className="h-4 w-4 mr-2" />
-            {!isDrawReady ? "Loading..." : isDrawingMode ? "Drawing..." : "Add Zone"}
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">
+              {!isDrawReady ? "Loading..." : isDrawingMode ? "Drawing..." : "Add Zone"}
+            </span>
           </Button>
 
           {isDrawingMode && (
-            <Button 
+            <Button
               onClick={() => setDrawingMode(false)}
               variant="destructive"
-              className="shadow-lg"
+              size="sm"
+              className="shadow-lg sm:h-10"
             >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
+              <X className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Cancel</span>
             </Button>
           )}
         </div>
 
         {/* Zone List */}
-          <div className="absolute top-4 right-4 lg:right-6 z-10 w-80 bg-white/95 backdrop-blur rounded-xl shadow-lg p-4 max-h-[80vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="absolute top-4 right-4 z-10 w-72 sm:w-80 bg-white/95 backdrop-blur rounded-xl shadow-lg p-3 sm:p-4 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-2">
-              <LayersIcon className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Fields ({zones.length})</h3>
+              <LayersIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <h3 className="font-semibold text-sm sm:text-base">Fields ({zones.length})</h3>
             </div>
           </div>
           
@@ -248,7 +252,7 @@ export function FullScreenMap() {
                   key={zone.id}
                   onClick={() => setSelectedZone(zone)}
                   className={cn(
-                    "p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
+                    "p-2 sm:p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
                     selectedZone?.id === zone.id
                       ? "border-primary bg-primary/5 shadow-sm"
                       : "border-gray-200 hover:border-gray-300"
@@ -259,13 +263,13 @@ export function FullScreenMap() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2 flex-1">
                       <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: zone.color }}
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{zone.name}</h4>
-                        <p className="text-xs text-gray-500">{zone.crop}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <h4 className="font-medium text-xs sm:text-sm truncate">{zone.name}</h4>
+                        <p className="text-[10px] sm:text-xs text-gray-500">{zone.crop}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">
                           {zone.area.toFixed(2)} ha
                         </p>
                       </div>
@@ -274,19 +278,19 @@ export function FullScreenMap() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-5 w-5 sm:h-6 sm:w-6"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/field/${zone.id}`);
                         }}
                         title="View details"
                       >
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-red-600"
+                        className="h-5 w-5 sm:h-6 sm:w-6 text-red-600"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm(`Delete ${zone.name}?`)) {
@@ -295,7 +299,7 @@ export function FullScreenMap() {
                         }}
                         title="Delete zone"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       </Button>
                     </div>
                   </div>
@@ -547,18 +551,20 @@ export function FullScreenMap() {
 
         {/* Instructions */}
         {isDrawingMode ? (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-green-600/95 backdrop-blur rounded-lg p-4 shadow-lg text-white z-10">
-            <h4 className="font-semibold text-sm mb-2">🎯 Drawing Mode Active</h4>
-            <ul className="text-xs space-y-1">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[90vw] sm:max-w-md bg-green-600/95 backdrop-blur rounded-lg p-3 sm:p-4 shadow-lg text-white z-10">
+            <h4 className="font-semibold text-xs sm:text-sm mb-1.5 sm:mb-2">🎯 Drawing Mode Active</h4>
+            <ul className="text-[10px] sm:text-xs space-y-0.5 sm:space-y-1">
               <li>• Click on the map to add points</li>
-              <li>• Double-click or press Enter to finish</li>
+              <li className="hidden sm:list-item">• Double-click or press Enter to finish</li>
+              <li className="sm:hidden">• Double-tap to finish</li>
               <li>• Press Escape or click Cancel to abort</li>
             </ul>
           </div>
         ) : (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur rounded-lg p-4 shadow-lg z-10">
-            <p className="text-sm text-gray-600">
-              Click <strong>Add Zone</strong> to start drawing irrigation zones on the map
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[90vw] sm:max-w-md bg-white/95 backdrop-blur rounded-lg p-3 sm:p-4 shadow-lg z-10">
+            <p className="text-xs sm:text-sm text-gray-600 text-center">
+              <span className="hidden sm:inline">Click <strong>Add Zone</strong> to start drawing irrigation zones on the map</span>
+              <span className="sm:hidden">Tap <strong>+</strong> to add zones</span>
             </p>
           </div>
         )}
