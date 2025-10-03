@@ -38,9 +38,10 @@ export async function subscribeToPushNotifications(): Promise<PushSubscription |
 
     if (!subscription) {
       // Create new subscription
+      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: applicationServerKey as BufferSource,
       });
       console.log("New push subscription created:", subscription);
     } else {

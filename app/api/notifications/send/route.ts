@@ -70,18 +70,18 @@ export async function POST(request: NextRequest) {
             payload
           );
           return { success: true, endpoint: subscription.endpoint };
-        } catch (error: any) {
+        } catch (error) {
           console.error("Error sending to subscription:", error);
 
           // If subscription is invalid (410 Gone), delete it
-          if (error.statusCode === 410) {
+          if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
             await PushSubscription.deleteOne({ _id: subscription._id });
           }
 
           return {
             success: false,
             endpoint: subscription.endpoint,
-            error: error.message,
+            error: error instanceof Error ? error.message : 'Unknown error',
           };
         }
       })
