@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         createdAt: user.createdAt,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get user error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

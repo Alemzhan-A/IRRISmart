@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Generate JWT token
     const token = signToken({
-      userId: user._id.toString(),
+      userId: String(user._id),
       email: user.email,
     });
 
@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Login error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }

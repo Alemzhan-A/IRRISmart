@@ -60,7 +60,7 @@ export function IrrigationSchedule() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-blue-500" />
-          Today's Schedule
+          Today&apos;s Schedule
         </CardTitle>
         <CardDescription>AI-optimized irrigation and fertigation plan</CardDescription>
       </CardHeader>

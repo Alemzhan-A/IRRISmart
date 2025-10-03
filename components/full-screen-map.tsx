@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Map, { MapRef, NavigationControl, GeolocateControl, Source, Layer, Marker, Popup } from "react-map-gl/mapbox";
 import type { LayerProps } from "react-map-gl/mapbox";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Plus, Layers as LayersIcon, X, ExternalLink } from "lucide-react";
 import { useZoneStore } from "@/lib/stores/zone-store";
 import { useModalStore } from "@/lib/stores/modal-store";
@@ -29,7 +28,7 @@ export function FullScreenMap() {
   const [hoveredZone, setHoveredZone] = React.useState<string | null>(null);
   const [popupInfo, setPopupInfo] = React.useState<{ zone: typeof zones[0]; lat: number; lng: number } | null>(null);
   
-  const { zones, selectedZone, isDrawingMode, setSelectedZone, deleteZone, setDrawingMode, clearSelectedZone } = useZoneStore();
+  const { zones, selectedZone, isDrawingMode, setSelectedZone, deleteZone, setDrawingMode } = useZoneStore();
   const { openModal } = useModalStore();
   
   const viewState = {
@@ -37,6 +36,37 @@ export function FullScreenMap() {
     latitude: 25.2048,
     zoom: 15,
   };
+
+  const handleZoneCreate = useCallback((feature: Feature<Polygon>) => {
+    console.log("handleZoneCreate called with feature:", feature);
+    const coordinates = feature.geometry.coordinates[0];
+
+    // Calculate area using Turf.js
+    const polygon = turf.polygon([coordinates]);
+    const areaInHectares = turf.area(polygon) / 10000;
+
+    console.log("Area:", areaInHectares, "hectares");
+
+    // Check minimum area (0.1 hectare)
+    if (areaInHectares < 0.1) {
+      console.log("Area too small, deleting polygon");
+      if (drawRef.current) {
+        drawRef.current.delete(feature.id as string);
+      }
+      alert("Zone is too small. Minimum area is 0.1 hectares (1000 m²)");
+      return;
+    }
+
+    // Open modal with coordinates
+    console.log("Opening modal with coordinates:", coordinates);
+    openModal(CREATE_ZONE_MODAL_KEY, coordinates);
+    setDrawingMode(false);
+
+    // Clear the drawn polygon
+    if (drawRef.current) {
+      drawRef.current.deleteAll();
+    }
+  }, [openModal, setDrawingMode]);
 
   const onMapLoad = useCallback(() => {
     console.log("🗺️ Map onLoad callback fired");
@@ -93,53 +123,23 @@ export function FullScreenMap() {
       });
 
       console.log("Adding draw control to map");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.addControl(draw as any);
       drawRef.current = draw;
       setIsDrawReady(true);
       console.log("✅ Mapbox Draw initialized and ready!");
 
       // Handle draw events
-      map.on("draw.create", (e) => {
+      map.on("draw.create", (e: { features: Feature<Polygon>[] }) => {
         console.log("Draw create event fired", e);
-        const feature = e.features[0] as Feature<Polygon>;
+        const feature = e.features[0];
         handleZoneCreate(feature);
       });
     } catch (error) {
       console.error("❌ Error initializing Mapbox Draw:", error);
       alert("Failed to initialize map drawing. Please refresh the page.");
     }
-  }, []);
-
-  const handleZoneCreate = (feature: Feature<Polygon>) => {
-    console.log("handleZoneCreate called with feature:", feature);
-    const coordinates = feature.geometry.coordinates[0];
-    
-    // Calculate area using Turf.js
-    const polygon = turf.polygon([coordinates]);
-    const areaInHectares = turf.area(polygon) / 10000;
-    
-    console.log("Area:", areaInHectares, "hectares");
-    
-    // Check minimum area (0.1 hectare)
-    if (areaInHectares < 0.1) {
-      console.log("Area too small, deleting polygon");
-      if (drawRef.current) {
-        drawRef.current.delete(feature.id as string);
-      }
-      alert("Zone is too small. Minimum area is 0.1 hectares (1000 m²)");
-      return;
-    }
-    
-    // Open modal with coordinates
-    console.log("Opening modal with coordinates:", coordinates);
-    openModal(CREATE_ZONE_MODAL_KEY, coordinates);
-    setDrawingMode(false);
-    
-    // Clear the drawn polygon
-    if (drawRef.current) {
-      drawRef.current.deleteAll();
-    }
-  };
+  }, [handleZoneCreate]);
 
   const handleAddZone = () => {
     console.log("Add zone clicked, current drawing mode:", isDrawingMode);
@@ -316,7 +316,7 @@ export function FullScreenMap() {
           interactiveLayerIds={zones.map((z) => `zone-fill-${z.id}`)}
           onClick={(e) => {
             const features = e.features;
-            if (features && features.length > 0) {
+            if (features && features.length > 0 && features[0].layer) {
               const zoneId = features[0].layer.id.replace("zone-fill-", "");
               const zone = zones.find((z) => z.id === zoneId);
               if (zone) {

@@ -28,9 +28,10 @@ const updateFieldSchema = z.object({
 // GET single field
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authUser = getAuthUser(request);
 
     if (!authUser) {
@@ -40,7 +41,7 @@ export async function GET(
     await connectDB();
 
     const field = await Field.findOne({
-      _id: params.id,
+      _id: id,
       userId: authUser.userId,
     });
 
@@ -49,7 +50,7 @@ export async function GET(
     }
 
     return NextResponse.json({ field });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get field error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -61,9 +62,10 @@ export async function GET(
 // PATCH update field
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authUser = getAuthUser(request);
 
     if (!authUser) {
@@ -79,7 +81,7 @@ export async function PATCH(
 
     // Update field
     const field = await Field.findOneAndUpdate(
-      { _id: params.id, userId: authUser.userId },
+      { _id: id, userId: authUser.userId },
       {
         $set: {
           ...validatedData,
@@ -99,12 +101,12 @@ export async function PATCH(
       message: "Field updated successfully",
       field,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Update field error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }
@@ -119,9 +121,10 @@ export async function PATCH(
 // DELETE field
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authUser = getAuthUser(request);
 
     if (!authUser) {
@@ -131,7 +134,7 @@ export async function DELETE(
     await connectDB();
 
     const field = await Field.findOneAndDelete({
-      _id: params.id,
+      _id: id,
       userId: authUser.userId,
     });
 
@@ -142,7 +145,7 @@ export async function DELETE(
     return NextResponse.json({
       message: "Field deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Delete field error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

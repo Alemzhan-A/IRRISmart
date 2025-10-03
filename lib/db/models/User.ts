@@ -50,8 +50,8 @@ UserSchema.pre("save", async function (next) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
-  } catch (error: any) {
-    next(error);
+  } catch (error) {
+    next(error instanceof Error ? error : new Error('Password hashing failed'));
   }
 });
 
@@ -61,7 +61,7 @@ UserSchema.methods.comparePassword = async function (
 ): Promise<boolean> {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
+  } catch {
     return false;
   }
 };

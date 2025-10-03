@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ fields });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get fields error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -80,12 +80,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Create field error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }

@@ -1,8 +1,7 @@
 import { create } from "zustand";
 
-interface ModalData {
-  [key: string]: any;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ModalData = Record<string, any>;
 
 interface ModalState {
   modals: { [key: string]: { isOpen: boolean; data?: ModalData } };

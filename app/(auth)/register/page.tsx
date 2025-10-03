@@ -45,8 +45,8 @@ export default function RegisterPage() {
         password: formData.password,
         farmName: formData.farmName || undefined,
       });
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
       setIsLoading(false);
     }
   };

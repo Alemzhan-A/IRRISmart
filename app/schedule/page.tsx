@@ -162,7 +162,7 @@ export default function SchedulePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
-                  Today's Schedule
+                  Today&apos;s Schedule
                 </CardTitle>
                 <CardDescription>
                   {scheduledTasks.filter((t) => t.date === "Today").length} tasks scheduled
@@ -209,7 +209,7 @@ export default function SchedulePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
-                  Tomorrow's Schedule
+                  Tomorrow&apos;s Schedule
                 </CardTitle>
                 <CardDescription>
                   {scheduledTasks.filter((t) => t.date === "Tomorrow").length} tasks scheduled

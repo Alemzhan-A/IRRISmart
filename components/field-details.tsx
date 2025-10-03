@@ -52,7 +52,7 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
       <main className="p-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-900">Field not found</h2>
-          <p className="text-gray-500 mt-2">The field you're looking for doesn't exist.</p>
+          <p className="text-gray-500 mt-2">The field you&apos;re looking for doesn&apos;t exist.</p>
           <Button onClick={() => router.push("/")} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard

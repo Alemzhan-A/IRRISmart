@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
       router.push("/");
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       setLoading(false);
       throw error;
     }
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(result.user);
       router.push("/");
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       setLoading(false);
       throw error;
     }

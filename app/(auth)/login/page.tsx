@@ -24,8 +24,8 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password);
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
       setIsLoading(false);
     }
   };
@@ -99,7 +99,7 @@ export default function LoginPage() {
             </Button>
 
             <div className="text-center text-sm text-gray-600">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link href="/register" className="text-primary font-semibold hover:underline">
                 Sign up
               </Link>

@@ -25,7 +25,6 @@ export function sendNotification(title: string, options?: NotificationOptions) {
     const notification = new Notification(title, {
       icon: "/icon-192x192.png",
       badge: "/icon-192x192.png",
-      vibrate: [200, 100, 200],
       ...options,
     });
 
@@ -44,16 +43,6 @@ export function sendLowMoistureAlert(fieldName: string, moistureLevel: number) {
     body: `${fieldName} moisture level is at ${moistureLevel}%. Irrigation recommended.`,
     tag: "low-moisture",
     requireInteraction: true,
-    actions: [
-      {
-        action: "view",
-        title: "View Field",
-      },
-      {
-        action: "dismiss",
-        title: "Dismiss",
-      },
-    ],
   });
 }
 

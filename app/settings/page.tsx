@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { NotificationTestButton } from "@/components/notification-test-button";
-import { User, Mail, Building2, Bell, Lock, Globe, Save } from "lucide-react";
+import { User, Bell, Lock, Globe, Save } from "lucide-react";
 import { useState } from "react";
 
 export default function SettingsPage() {
