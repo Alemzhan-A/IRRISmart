@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { FullScreenMap } from "@/components/full-screen-map";
 import { Menu } from "lucide-react";
@@ -8,9 +9,10 @@ import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex relative">
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
       {/* Mobile Menu Button */}
       <Button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -30,8 +32,14 @@ export default function HomePage() {
       )}
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      <div className="flex-1">
-        <FullScreenMap />
+      <div className="flex-1 flex flex-col">
+        {/* Offline Mode Button */}
+        <div className="w-full flex justify-end p-4">
+          <Button variant="outline" onClick={() => router.push("/offline")}>Offline Mode</Button>
+        </div>
+        <div className="flex-1">
+          <FullScreenMap />
+        </div>
       </div>
     </div>
   );

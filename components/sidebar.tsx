@@ -74,7 +74,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold">IRRISmart</h1>
+            <h1 className="text-xl font-bold">FieldSenseAI</h1>
           </div>
         </div>
       </div>

@@ -41,7 +41,7 @@ export function DashboardHeader() {
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold">IRRISmart</h1>
+            <h1 className="text-xl font-bold">FieldSenseAI</h1>
             <p className="text-xs text-muted-foreground">AI Irrigation Advisory</p>
           </div>
         </div>

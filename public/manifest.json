@@ -1,6 +1,6 @@
 {
-  "name": "IRRISmart - AI Irrigation Advisory",
-  "short_name": "IRRISmart",
+  "name": "FieldSenseAI - AI Irrigation Advisory",
+  "short_name": "FieldSenseAI",
   "description": "Optimize irrigation and fertigation with AI-powered insights",
   "start_url": "/",
   "scope": "/",

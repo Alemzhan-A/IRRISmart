@@ -20,7 +20,7 @@ self.addEventListener("push", (event) => {
   }
 
   const data = event.data.json();
-  const title = data.title || "IRRISmart";
+  const title = data.title || "FieldSenseAI";
   const options = {
     body: data.body || data.message,
     icon: data.icon || "/icon-192x192.png",

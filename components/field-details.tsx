@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Droplets, Thermometer, Zap, Clock, Play, Pause, MapPin, AlertCircle } from "lucide-react";
 import { CROP_CATEGORIES, getFieldStatus, getFieldColor } from "@/lib/constants/crop-categories";
 import type { Zone } from "@/lib/stores/zone-store";
+import { requestNotificationPermission, sendLowMoistureAlert } from "@/lib/notifications/push-notifications";
+
 
 interface FieldDetailsProps {
   fieldId: string;
@@ -18,8 +20,13 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
   const router = useRouter();
   const [field, setField] = useState<Zone | null>(null);
   const [loading, setLoading] = useState(true);
+  const [simulatedMoisture, setSimulatedMoisture] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    let permissionGranted = false;
+    let latestField: Zone | null = null;
+
     async function fetchField() {
       try {
         const response = await fetch(`/api/fields/${fieldId}`);
@@ -28,7 +35,7 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
         }
         const { field: fieldData } = await response.json();
 
-        setField({
+        const newField: Zone = {
           id: fieldData._id,
           name: fieldData.name,
           crop: fieldData.crop,
@@ -38,7 +45,11 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
           coordinates: fieldData.coordinates,
           sensorData: fieldData.sensorData,
           irrigation: fieldData.irrigation,
-        });
+        };
+        setField(newField);
+        latestField = newField;
+        // Request notification permission as soon as field loads
+        permissionGranted = await requestNotificationPermission();
       } catch (error) {
         console.error("Error fetching field:", error);
       } finally {
@@ -47,7 +58,28 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
     }
 
     fetchField();
-  }, [fieldId]);
+
+    // Start timer when page is loaded
+    timerRef.current = setTimeout(() => {
+      setSimulatedMoisture((prev) => {
+        // This will trigger a re-render with low moisture
+        return prev !== null ? prev - 20 : null;
+      });
+      // Use latest field value
+      const f = latestField || field;
+      if (f) {
+        if (permissionGranted) {
+          sendLowMoistureAlert(f.name, 20); // Simulate low moisture
+        } else {
+          alert(`Low Moisture Alert: ${f.name} moisture level is at 20%. Irrigation recommended.`);
+        }
+      }
+    }, 60000); // 1 minute
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [fieldId, field]);
 
   if (loading) {
     return (
@@ -75,9 +107,14 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
   }
 
   // Get crop category thresholds
-  const category = field.cropCategory
+  const category = field?.cropCategory
     ? CROP_CATEGORIES.find((c) => c.id === field.cropCategory)
     : null;
+
+  // Use simulated moisture if set, otherwise real sensor value
+  const moistureValue = simulatedMoisture !== null
+    ? simulatedMoisture
+    : field?.sensorData?.moisture ?? 0;
 
   // Get field status and color
   const fieldStatus = field.cropCategory && field.sensorData && field.irrigation
@@ -190,10 +227,10 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold mb-2">
-              {field.sensorData?.moisture ?? 0}%
+              {moistureValue}%
             </div>
             <Progress
-              value={field.sensorData?.moisture ?? 0}
+              value={moistureValue}
               indicatorClassName={
                 category && field.sensorData
                   ? field.sensorData.moisture >= category.thresholds.moisture.min &&
