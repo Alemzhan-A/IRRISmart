@@ -14,7 +14,7 @@ const weekData = [
 ];
 
 export function MoistureAnalytics() {
-  const maxValue = Math.max(...weekData.map(d => d.value));
+  const maxValue = Math.max(...weekData.map((d) => d.value));
 
   return (
     <Card>
@@ -23,17 +23,17 @@ export function MoistureAnalytics() {
           <BarChart3 className="h-5 w-5 text-primary" />
           Irrigation Analytics
         </CardTitle>
-        <CardDescription>Weekly water usage pattern</CardDescription>
+        <CardDescription>Weekly moisture levels across all fields</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-end justify-between gap-2 h-64">
           {weekData.map((item, index) => {
             const height = (item.value / maxValue) * 100;
             const isHighUsage = item.value > 70;
-            
+
             return (
               <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                <div className="relative w-full flex items-end justify-center" style={{ height: '200px' }}>
+                <div className="relative w-full flex items-end justify-center" style={{ height: "200px" }}>
                   <div className="relative group w-full max-w-[60px]">
                     {isHighUsage && (
                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-500">
@@ -42,15 +42,13 @@ export function MoistureAnalytics() {
                     )}
                     <div
                       className={`w-full rounded-t-xl transition-all duration-300 ${
-                        isHighUsage
-                          ? 'bg-gradient-to-t from-primary to-green-400'
-                          : 'bg-gray-200'
+                        isHighUsage ? "bg-gradient-to-t from-primary to-green-400" : "bg-gray-200"
                       }`}
-                      style={{ 
+                      style={{
                         height: `${height}%`,
-                        backgroundImage: isHighUsage 
-                          ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px)'
-                          : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.03) 10px, rgba(0,0,0,.03) 20px)'
+                        backgroundImage: isHighUsage
+                          ? "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px)"
+                          : "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,.03) 10px, rgba(0,0,0,.03) 20px)",
                       }}
                     />
                   </div>

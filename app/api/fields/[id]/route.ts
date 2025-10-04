@@ -3,6 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import Field from "@/lib/db/models/Field";
 import { getAuthUser } from "@/lib/auth/middleware";
 import { z } from "zod";
+import { getFieldColor, getFieldStatus } from "@/lib/constants/crop-categories";
 
 const updateFieldSchema = z.object({
   name: z.string().min(1).optional(),
@@ -79,12 +80,46 @@ export async function PATCH(
 
     await connectDB();
 
+    // Get current field to check cropCategory
+    const currentField = await Field.findOne({
+      _id: id,
+      userId: authUser.userId,
+    });
+
+    if (!currentField) {
+      return NextResponse.json({ error: "Field not found" }, { status: 404 });
+    }
+
+    // Merge sensor data and irrigation data
+    const updatedSensorData = {
+      ...currentField.sensorData,
+      ...validatedData.sensorData,
+    };
+
+    const updatedIrrigation = {
+      ...currentField.irrigation,
+      ...validatedData.irrigation,
+    };
+
+    // Calculate new color based on status
+    const status = getFieldStatus(
+      currentField.cropCategory,
+      {
+        moisture: updatedSensorData.moisture,
+        temperature: updatedSensorData.temperature,
+        salinity: updatedSensorData.salinity,
+      },
+      updatedIrrigation.isActive
+    );
+    const color = getFieldColor(status);
+
     // Update field
     const field = await Field.findOneAndUpdate(
       { _id: id, userId: authUser.userId },
       {
         $set: {
           ...validatedData,
+          color,
           ...(validatedData.sensorData && {
             "sensorData.lastUpdated": new Date(),
           }),

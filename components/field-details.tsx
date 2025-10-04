@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useZoneStore } from "@/lib/stores/zone-store";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Droplets, Thermometer, Zap, Clock, Play, Pause, MapPin } from "lucide-react";
+import { ArrowLeft, Droplets, Thermometer, Zap, Clock, Play, Pause, MapPin, AlertCircle } from "lucide-react";
+import { CROP_CATEGORIES, getFieldStatus, getFieldColor } from "@/lib/constants/crop-categories";
+import type { Zone } from "@/lib/stores/zone-store";
 
 interface FieldDetailsProps {
   fieldId: string;
@@ -15,37 +16,48 @@ interface FieldDetailsProps {
 
 export function FieldDetails({ fieldId }: FieldDetailsProps) {
   const router = useRouter();
-  const { zones } = useZoneStore();
-  const field = zones.find((z) => z.id === fieldId);
-  
-  // Mock data - replace with real sensor data later
-  const [sensorData, setSensorData] = useState({
-    moisture: 68,
-    temperature: 24.5,
-    salinity: 1.8,
-  });
-
-  const [irrigationProgress, setIrrigationProgress] = useState({
-    isActive: true,
-    totalMinutes: 60,
-    remainingMinutes: 42,
-  });
+  const [field, setField] = useState<Zone | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate irrigation countdown
-    if (!irrigationProgress.isActive) return;
-
-    const timer = setInterval(() => {
-      setIrrigationProgress((prev) => {
-        if (prev.remainingMinutes <= 0) {
-          return { ...prev, isActive: false, remainingMinutes: 0 };
+    async function fetchField() {
+      try {
+        const response = await fetch(`/api/fields/${fieldId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch field");
         }
-        return { ...prev, remainingMinutes: prev.remainingMinutes - 1 };
-      });
-    }, 60000); // Update every minute
+        const { field: fieldData } = await response.json();
 
-    return () => clearInterval(timer);
-  }, [irrigationProgress.isActive]);
+        setField({
+          id: fieldData._id,
+          name: fieldData.name,
+          crop: fieldData.crop,
+          cropCategory: fieldData.cropCategory,
+          area: fieldData.area,
+          color: fieldData.color,
+          coordinates: fieldData.coordinates,
+          sensorData: fieldData.sensorData,
+          irrigation: fieldData.irrigation,
+        });
+      } catch (error) {
+        console.error("Error fetching field:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchField();
+  }, [fieldId]);
+
+  if (loading) {
+    return (
+      <main className="p-8">
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading field data...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!field) {
     return (
@@ -62,36 +74,112 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
     );
   }
 
-  const progressPercentage = ((irrigationProgress.totalMinutes - irrigationProgress.remainingMinutes) / irrigationProgress.totalMinutes) * 100;
+  // Get crop category thresholds
+  const category = field.cropCategory
+    ? CROP_CATEGORIES.find((c) => c.id === field.cropCategory)
+    : null;
+
+  // Get field status and color
+  const fieldStatus = field.cropCategory && field.sensorData && field.irrigation
+    ? getFieldStatus(
+        field.cropCategory,
+        {
+          moisture: field.sensorData.moisture,
+          temperature: field.sensorData.temperature,
+          salinity: field.sensorData.salinity,
+        },
+        field.irrigation.isActive
+      )
+    : "normal";
+
+  const fieldColor = getFieldColor(fieldStatus);
+
+  const progressPercentage = field.irrigation
+    ? ((field.irrigation.totalMinutes - field.irrigation.remainingMinutes) / field.irrigation.totalMinutes) * 100
+    : 0;
+
+  const statusLabels = {
+    needs_irrigation: "Needs Irrigation",
+    normal: "Normal",
+    irrigating: "Irrigating",
+  };
 
   return (
-    <main className="p-8">
+    <main className="p-4 md:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.push("/")} className="mb-4">
+        <Button variant="ghost" onClick={() => router.push("/")} className="mb-4 text-sm md:text-base">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{field.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <Badge className="bg-primary">{field.crop}</Badge>
-              <div className="flex items-center gap-2 text-gray-500">
-                <MapPin className="h-4 w-4" />
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{field.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2">
+              <Badge className="bg-primary text-xs md:text-sm">{field.crop}</Badge>
+              {category && (
+                <Badge variant="outline" className="gap-1 text-xs md:text-sm">
+                  {category.emoji} {category.name}
+                </Badge>
+              )}
+              <div className="flex items-center gap-2 text-gray-500 text-xs md:text-sm">
+                <MapPin className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{field.area.toFixed(2)} hectares</span>
               </div>
             </div>
           </div>
-          <div
-            className="w-6 h-6 rounded-full border-4 border-white shadow-lg"
-            style={{ backgroundColor: field.color }}
-          />
+          <div className="flex items-center gap-3">
+            <Badge
+              className="text-white text-xs md:text-sm"
+              style={{ backgroundColor: fieldColor }}
+            >
+              {statusLabels[fieldStatus]}
+            </Badge>
+            <div
+              className="w-5 h-5 md:w-6 md:h-6 rounded-full border-4 border-white shadow-lg"
+              style={{ backgroundColor: fieldColor }}
+            />
+          </div>
         </div>
       </div>
 
+      {/* Thresholds Card */}
+      {category && (
+        <Card className="mb-6 border-l-4" style={{ borderLeftColor: fieldColor }}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Crop Thresholds - {category.name}
+            </CardTitle>
+            <CardDescription>{category.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Temperature Range</p>
+                <p className="text-lg font-bold">
+                  {category.thresholds.temperature.min}°C - {category.thresholds.temperature.max}°C
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Moisture Range</p>
+                <p className="text-lg font-bold">
+                  {category.thresholds.moisture.min}% - {category.thresholds.moisture.max}%
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Max Salinity</p>
+                <p className="text-lg font-bold">
+                  ≤ {category.thresholds.salinity.max} {category.thresholds.salinity.unit}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sensor Data Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Moisture */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -101,19 +189,26 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
             <Droplets className="h-5 w-5 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-2">{sensorData.moisture}%</div>
-            <Progress 
-              value={sensorData.moisture} 
+            <div className="text-3xl font-bold mb-2">
+              {field.sensorData?.moisture ?? 0}%
+            </div>
+            <Progress
+              value={field.sensorData?.moisture ?? 0}
               indicatorClassName={
-                sensorData.moisture > 60 
-                  ? "bg-green-600" 
-                  : sensorData.moisture > 40 
-                  ? "bg-yellow-600" 
-                  : "bg-red-600"
+                category && field.sensorData
+                  ? field.sensorData.moisture >= category.thresholds.moisture.min &&
+                    field.sensorData.moisture <= category.thresholds.moisture.max
+                    ? "bg-green-600"
+                    : field.sensorData.moisture < category.thresholds.moisture.min
+                    ? "bg-red-600"
+                    : "bg-yellow-600"
+                  : "bg-gray-400"
               }
             />
             <p className="text-xs text-muted-foreground mt-2">
-              {sensorData.moisture > 60 ? "Optimal" : sensorData.moisture > 40 ? "Low" : "Critical"}
+              {category
+                ? `Optimal: ${category.thresholds.moisture.min}-${category.thresholds.moisture.max}%`
+                : "No thresholds set"}
             </p>
           </CardContent>
         </Card>
@@ -127,10 +222,30 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
             <Thermometer className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-2">{sensorData.temperature}°C</div>
-            <Progress value={(sensorData.temperature / 40) * 100} />
+            <div className="text-3xl font-bold mb-2">
+              {field.sensorData?.temperature ?? 0}°C
+            </div>
+            <Progress
+              value={
+                category && field.sensorData
+                  ? ((field.sensorData.temperature - category.thresholds.temperature.min) /
+                      (category.thresholds.temperature.max - category.thresholds.temperature.min)) *
+                    100
+                  : 0
+              }
+              indicatorClassName={
+                category && field.sensorData
+                  ? field.sensorData.temperature >= category.thresholds.temperature.min &&
+                    field.sensorData.temperature <= category.thresholds.temperature.max
+                    ? "bg-green-600"
+                    : "bg-yellow-600"
+                  : "bg-gray-400"
+              }
+            />
             <p className="text-xs text-muted-foreground mt-2">
-              Ideal range: 18-28°C
+              {category
+                ? `Optimal: ${category.thresholds.temperature.min}-${category.thresholds.temperature.max}°C`
+                : "No thresholds set"}
             </p>
           </CardContent>
         </Card>
@@ -144,26 +259,32 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
             <Zap className="h-5 w-5 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-2">{sensorData.salinity} dS/m</div>
-            <Progress 
-              value={(sensorData.salinity / 3) * 100}
+            <div className="text-3xl font-bold mb-2">
+              {field.sensorData?.salinity.toFixed(1) ?? 0} dS/m
+            </div>
+            <Progress
+              value={
+                category && field.sensorData
+                  ? (field.sensorData.salinity / category.thresholds.salinity.max) * 100
+                  : 0
+              }
               indicatorClassName={
-                sensorData.salinity < 2 
-                  ? "bg-green-600" 
-                  : sensorData.salinity < 2.5 
-                  ? "bg-yellow-600" 
-                  : "bg-red-600"
+                category && field.sensorData
+                  ? field.sensorData.salinity <= category.thresholds.salinity.max
+                    ? "bg-green-600"
+                    : "bg-red-600"
+                  : "bg-gray-400"
               }
             />
             <p className="text-xs text-muted-foreground mt-2">
-              {sensorData.salinity < 2 ? "Good" : sensorData.salinity < 2.5 ? "Elevated" : "High"}
+              {category ? `Max: ${category.thresholds.salinity.max} dS/m` : "No thresholds set"}
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Irrigation Progress */}
-      <Card className="mb-6">
+      <Card className="mb-4 md:mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -172,14 +293,14 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
                 Irrigation Progress
               </CardTitle>
               <CardDescription className="mt-1">
-                {irrigationProgress.isActive ? "Irrigation in progress" : "No active irrigation"}
+                {field.irrigation?.isActive ? "Irrigation in progress" : "No active irrigation"}
               </CardDescription>
             </div>
-            <Badge 
-              variant={irrigationProgress.isActive ? "default" : "outline"}
-              className={irrigationProgress.isActive ? "bg-green-600" : ""}
+            <Badge
+              variant={field.irrigation?.isActive ? "default" : "outline"}
+              className={field.irrigation?.isActive ? "bg-green-600" : ""}
             >
-              {irrigationProgress.isActive ? (
+              {field.irrigation?.isActive ? (
                 <>
                   <Play className="h-3 w-3 mr-1" />
                   Active
@@ -194,38 +315,51 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {irrigationProgress.isActive ? (
+          {field.irrigation?.isActive ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Time remaining</span>
                 <span className="font-bold text-2xl text-primary">
-                  {Math.floor(irrigationProgress.remainingMinutes / 60)}h {irrigationProgress.remainingMinutes % 60}m
+                  {Math.floor((field.irrigation?.remainingMinutes ?? 0) / 60)}h{" "}
+                  {(field.irrigation?.remainingMinutes ?? 0) % 60}m
                 </span>
               </div>
               <Progress value={progressPercentage} className="h-3" />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Elapsed: {irrigationProgress.totalMinutes - irrigationProgress.remainingMinutes} min
+                  Elapsed:{" "}
+                  {(field.irrigation?.totalMinutes ?? 0) -
+                    (field.irrigation?.remainingMinutes ?? 0)}{" "}
+                  min
                 </span>
-                <span>
-                  Total: {irrigationProgress.totalMinutes} min
-                </span>
+                <span>Total: {field.irrigation?.totalMinutes ?? 0} min</span>
               </div>
               <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <p className="text-xs text-muted-foreground">Water Used</p>
                   <p className="text-lg font-semibold">
-                    {((irrigationProgress.totalMinutes - irrigationProgress.remainingMinutes) * 2.5).toFixed(1)} L
+                    {(
+                      ((field.irrigation?.totalMinutes ?? 0) -
+                        (field.irrigation?.remainingMinutes ?? 0)) *
+                      (field.irrigation?.flowRate ?? 2.5)
+                    ).toFixed(1)}{" "}
+                    L
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Flow Rate</p>
-                  <p className="text-lg font-semibold">2.5 L/min</p>
+                  <p className="text-lg font-semibold">
+                    {field.irrigation?.flowRate ?? 2.5} L/min
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Total Target</p>
                   <p className="text-lg font-semibold">
-                    {(irrigationProgress.totalMinutes * 2.5).toFixed(0)} L
+                    {(
+                      (field.irrigation?.totalMinutes ?? 0) *
+                      (field.irrigation?.flowRate ?? 2.5)
+                    ).toFixed(0)}{" "}
+                    L
                   </p>
                 </div>
               </div>
@@ -243,7 +377,7 @@ export function FieldDetails({ fieldId }: FieldDetailsProps) {
       </Card>
 
       {/* Additional Info Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { ZoneStats } from "@/components/zone-stats";
@@ -6,36 +9,51 @@ import { ZoneProgress } from "@/components/zone-progress";
 import { UpcomingReminders } from "@/components/upcoming-reminders";
 import { ActiveZonesList } from "@/components/active-zones-list";
 import { MoistureMonitor } from "@/components/moisture-monitor";
-import { WaterQuality } from "@/components/water-quality";
 import { IrrigationSchedule } from "@/components/irrigation-schedule";
-import { WeatherForecast } from "@/components/weather-forecast";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Upload, Menu } from "lucide-react";
 
 export default function OverviewPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="ml-64">
+      {/* Mobile Menu Button */}
+      <Button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        size="icon"
+        className="fixed top-4 left-4 z-[60] lg:hidden shadow-lg"
+        variant="default"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      <div className="lg:ml-64">
         <TopHeader />
-        
-        <main className="p-8">
+
+        <main className="p-4 md:p-6 lg:p-8">
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
-                <p className="text-gray-500 mt-1">Monitor your irrigation zones and system performance.</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Overview</h1>
+                <p className="text-sm md:text-base text-gray-500 mt-1">Monitor your irrigation zones and system performance.</p>
               </div>
               <div className="flex items-center gap-3">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 text-sm md:text-base">
                   <Upload className="h-4 w-4" />
-                  Import Data
-                </Button>
-                <Button className="bg-primary hover:bg-primary/90 gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Zone
+                  <span className="hidden sm:inline">Import Data</span>
+                  <span className="sm:hidden">Import</span>
                 </Button>
               </div>
             </div>
@@ -47,30 +65,20 @@ export default function OverviewPage() {
           </div>
 
           {/* Main Grid Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
             {/* Left Column - Analytics */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               <MoistureAnalytics />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <MoistureMonitor />
-                <WaterQuality />
-              </div>
-
+              <MoistureMonitor />
               <IrrigationSchedule />
             </div>
 
             {/* Right Column - Reminders and Progress */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               <UpcomingReminders />
               <ActiveZonesList />
               <ZoneProgress />
             </div>
-          </div>
-
-          {/* Weather Forecast */}
-          <div className="mb-6">
-            <WeatherForecast />
           </div>
         </main>
       </div>

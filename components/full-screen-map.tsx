@@ -11,6 +11,8 @@ import { Plus, Layers as LayersIcon, X, ExternalLink } from "lucide-react";
 import { useZoneStore } from "@/lib/stores/zone-store";
 import { useModalStore } from "@/lib/stores/modal-store";
 import { CREATE_ZONE_MODAL_KEY, CreateZoneModal } from "@/components/zones/create-zone-modal";
+import { useFields } from "@/hooks/use-fields";
+import { getFieldColor, getFieldStatus } from "@/lib/constants/crop-categories";
 import type { Feature, Polygon } from "geojson";
 import * as turf from "@turf/turf";
 import { cn } from "@/lib/utils";
@@ -27,9 +29,12 @@ export function FullScreenMap() {
   const [isDrawReady, setIsDrawReady] = React.useState(false);
   const [hoveredZone, setHoveredZone] = React.useState<string | null>(null);
   const [popupInfo, setPopupInfo] = React.useState<{ zone: typeof zones[0]; lat: number; lng: number } | null>(null);
-  
+
   const { zones, selectedZone, isDrawingMode, setSelectedZone, deleteZone, setDrawingMode } = useZoneStore();
   const { openModal } = useModalStore();
+
+  // Load fields from database
+  useFields();
   
   const viewState = {
     longitude: 51.5074,
@@ -182,8 +187,8 @@ export function FullScreenMap() {
   
   // Display selected zone
   useEffect(() => {
-    if (!drawRef.current || !selectedZone) return;
-    
+    if (!drawRef.current || !selectedZone || isDrawingMode) return;
+
     drawRef.current.deleteAll();
     drawRef.current.add({
       type: "Feature",
@@ -193,20 +198,20 @@ export function FullScreenMap() {
         coordinates: [selectedZone.coordinates],
       },
     });
-  }, [selectedZone]);
+  }, [selectedZone, isDrawingMode]);
 
   return (
     <>
       <CreateZoneModal />
       <div className="relative h-screen w-full">
         {/* Floating Controls */}
-        <div className="absolute top-4 left-16 lg:left-4 z-10 flex flex-col gap-2 sm:gap-3">
+        <div className="absolute top-20 left-4 lg:top-4 lg:left-[272px] z-[50] flex flex-col gap-2 sm:gap-3">
           <Button
             onClick={handleAddZone}
             disabled={!isDrawReady}
             size="sm"
             className={cn(
-              "shadow-lg transition-all sm:h-10",
+              "shadow-lg transition-all h-10",
               !isDrawReady && "opacity-50 cursor-not-allowed",
               isDrawingMode
                 ? "bg-green-600 hover:bg-green-700"
@@ -224,7 +229,7 @@ export function FullScreenMap() {
               onClick={() => setDrawingMode(false)}
               variant="destructive"
               size="sm"
-              className="shadow-lg sm:h-10"
+              className="shadow-lg h-10"
             >
               <X className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Cancel</span>
@@ -247,25 +252,43 @@ export function FullScreenMap() {
                 No zones created yet
               </p>
             ) : (
-              zones.map((zone) => (
-                <div
-                  key={zone.id}
-                  onClick={() => setSelectedZone(zone)}
-                  className={cn(
-                    "p-2 sm:p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                    selectedZone?.id === zone.id
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                  onMouseEnter={() => setHoveredZone(zone.id)}
-                  onMouseLeave={() => setHoveredZone(null)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div
-                        className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: zone.color }}
-                      />
+              zones.map((zone) => {
+                // Calculate current color for zone list
+                let listColor = "#22c55e";
+                if (zone.cropCategory && zone.sensorData && zone.irrigation) {
+                  const status = getFieldStatus(
+                    zone.cropCategory,
+                    {
+                      moisture: zone.sensorData.moisture,
+                      temperature: zone.sensorData.temperature,
+                      salinity: zone.sensorData.salinity,
+                    },
+                    zone.irrigation.isActive
+                  );
+                  listColor = getFieldColor(status);
+                } else if (zone.color) {
+                  listColor = zone.color;
+                }
+
+                return (
+                  <div
+                    key={zone.id}
+                    onClick={() => setSelectedZone(zone)}
+                    className={cn(
+                      "p-2 sm:p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
+                      selectedZone?.id === zone.id
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                    onMouseEnter={() => setHoveredZone(zone.id)}
+                    onMouseLeave={() => setHoveredZone(null)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: listColor }}
+                        />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-xs sm:text-sm truncate">{zone.name}</h4>
                         <p className="text-[10px] sm:text-xs text-gray-500">{zone.crop}</p>
@@ -304,7 +327,8 @@ export function FullScreenMap() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -343,6 +367,24 @@ export function FullScreenMap() {
         >
           {/* Render zones as polygons */}
           {zones.map((zone) => {
+            // Calculate current color based on status
+            let zoneColor = "#22c55e"; // Default green
+            if (zone.cropCategory && zone.sensorData && zone.irrigation) {
+              const status = getFieldStatus(
+                zone.cropCategory,
+                {
+                  moisture: zone.sensorData.moisture,
+                  temperature: zone.sensorData.temperature,
+                  salinity: zone.sensorData.salinity,
+                },
+                zone.irrigation.isActive
+              );
+              zoneColor = getFieldColor(status);
+            } else if (zone.color) {
+              // Fallback to stored color if available
+              zoneColor = zone.color;
+            }
+
             const geojson: GeoJSON.Feature<GeoJSON.Polygon> = {
               type: "Feature",
               properties: { id: zone.id, name: zone.name },
@@ -356,9 +398,9 @@ export function FullScreenMap() {
               id: `zone-fill-${zone.id}`,
               type: "fill",
               paint: {
-                "fill-color": zone.color,
-                "fill-opacity": isDrawingMode 
-                  ? 0.15 
+                "fill-color": zoneColor,
+                "fill-opacity": isDrawingMode
+                  ? 0.15
                   : selectedZone?.id === zone.id || hoveredZone === zone.id ? 0.4 : 0.2,
               },
             };
@@ -367,9 +409,9 @@ export function FullScreenMap() {
               id: `zone-line-${zone.id}`,
               type: "line",
               paint: {
-                "line-color": zone.color,
-                "line-width": isDrawingMode 
-                  ? 1.5 
+                "line-color": zoneColor,
+                "line-width": isDrawingMode
+                  ? 1.5
                   : selectedZone?.id === zone.id || hoveredZone === zone.id ? 3 : 2,
               },
             };
@@ -416,21 +458,21 @@ export function FullScreenMap() {
                           ? "shadow-xl bg-white"
                           : "hover:shadow-xl hover:bg-white")
                       )}
-                      style={{ borderColor: zone.color }}
+                      style={{ borderColor: zoneColor }}
                     >
                       {/* Colored accent bar */}
-                      <div 
+                      <div
                         className="absolute top-0 left-0 right-0 h-1 rounded-t-md"
-                        style={{ backgroundColor: zone.color }}
+                        style={{ backgroundColor: zoneColor }}
                       />
-                      
+
                       {/* Content */}
                       <div className="px-3 py-2 pt-3">
                         <div className="flex items-center gap-2">
                           {/* Color indicator dot */}
-                          <div 
+                          <div
                             className="w-2 h-2 rounded-full flex-shrink-0 shadow-md"
-                            style={{ backgroundColor: zone.color }}
+                            style={{ backgroundColor: zoneColor }}
                           />
                           
                           {/* Zone name */}
@@ -463,19 +505,19 @@ export function FullScreenMap() {
 
                       {/* Pulse animation for selected */}
                       {selectedZone?.id === zone.id && (
-                        <div 
+                        <div
                           className="absolute inset-0 rounded-lg animate-pulse"
-                          style={{ 
-                            boxShadow: `0 0 0 3px ${zone.color}20`
+                          style={{
+                            boxShadow: `0 0 0 3px ${zoneColor}20`
                           }}
                         />
                       )}
                     </div>
 
                     {/* Arrow pointer */}
-                    <div 
+                    <div
                       className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-transparent"
-                      style={{ borderTopColor: zone.color }}
+                      style={{ borderTopColor: zoneColor }}
                     />
                   </div>
                 </Marker>
@@ -484,62 +526,81 @@ export function FullScreenMap() {
           })}
 
           {/* Popup for zone details */}
-          {popupInfo && (
-            <Popup
-              longitude={popupInfo.lng}
-              latitude={popupInfo.lat}
-              anchor="bottom"
-              onClose={() => setPopupInfo(null)}
-              closeButton={true}
-              closeOnClick={false}
-              className="custom-popup"
-            >
-              <div className="p-3 min-w-[220px]">
-                {/* Header with color accent */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div 
-                    className="w-3 h-3 rounded-full shadow-md"
-                    style={{ backgroundColor: popupInfo.zone.color }}
-                  />
-                  <h4 className="font-bold text-base text-gray-900">
-                    {popupInfo.zone.name}
-                  </h4>
-                </div>
+          {popupInfo && (() => {
+            // Calculate current color for popup
+            let popupColor = "#22c55e";
+            if (popupInfo.zone.cropCategory && popupInfo.zone.sensorData && popupInfo.zone.irrigation) {
+              const status = getFieldStatus(
+                popupInfo.zone.cropCategory,
+                {
+                  moisture: popupInfo.zone.sensorData.moisture,
+                  temperature: popupInfo.zone.sensorData.temperature,
+                  salinity: popupInfo.zone.sensorData.salinity,
+                },
+                popupInfo.zone.irrigation.isActive
+              );
+              popupColor = getFieldColor(status);
+            } else if (popupInfo.zone.color) {
+              popupColor = popupInfo.zone.color;
+            }
 
-                {/* Details grid */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-lg">🌾</span>
-                    <div>
-                      <p className="text-xs text-gray-500">Crop Type</p>
-                      <p className="font-medium text-gray-900">{popupInfo.zone.crop}</p>
+            return (
+              <Popup
+                longitude={popupInfo.lng}
+                latitude={popupInfo.lat}
+                anchor="bottom"
+                onClose={() => setPopupInfo(null)}
+                closeButton={true}
+                closeOnClick={false}
+                className="custom-popup"
+              >
+                <div className="p-3 min-w-[220px]">
+                  {/* Header with color accent */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div
+                      className="w-3 h-3 rounded-full shadow-md"
+                      style={{ backgroundColor: popupColor }}
+                    />
+                    <h4 className="font-bold text-base text-gray-900">
+                      {popupInfo.zone.name}
+                    </h4>
+                  </div>
+
+                  {/* Details grid */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-lg">🌾</span>
+                      <div>
+                        <p className="text-xs text-gray-500">Crop Type</p>
+                        <p className="font-medium text-gray-900">{popupInfo.zone.crop}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-lg">📏</span>
+                      <div>
+                        <p className="text-xs text-gray-500">Area</p>
+                        <p className="font-medium text-gray-900">
+                          {popupInfo.zone.area.toFixed(2)} hectares
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-lg">📏</span>
-                    <div>
-                      <p className="text-xs text-gray-500">Area</p>
-                      <p className="font-medium text-gray-900">
-                        {popupInfo.zone.area.toFixed(2)} hectares
-                      </p>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Action button */}
-                <Button
-                  size="sm"
-                  className="w-full group"
-                  style={{ backgroundColor: popupInfo.zone.color }}
-                  onClick={() => router.push(`/field/${popupInfo.zone.id}`)}
-                >
-                  <span>View Field Details</span>
-                  <ExternalLink className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </div>
-            </Popup>
-          )}
+                  {/* Action button */}
+                  <Button
+                    size="sm"
+                    className="w-full group"
+                    style={{ backgroundColor: popupColor }}
+                    onClick={() => router.push(`/field/${popupInfo.zone.id}`)}
+                  >
+                    <span>View Field Details</span>
+                    <ExternalLink className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </Popup>
+            );
+          })()}
 
           <NavigationControl position="bottom-left" />
           <GeolocateControl

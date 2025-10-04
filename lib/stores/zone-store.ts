@@ -4,9 +4,24 @@ export interface Zone {
   id: string;
   name: string;
   crop: string;
+  cropCategory?: string;
   area: number;
   color: string;
   coordinates: number[][];
+  sensorData?: {
+    moisture: number;
+    temperature: number;
+    salinity: number;
+    lastUpdated: Date;
+  };
+  irrigation?: {
+    isActive: boolean;
+    totalMinutes: number;
+    remainingMinutes: number;
+    flowRate: number;
+    lastIrrigation?: Date;
+    lastFertigation?: Date;
+  };
 }
 
 interface ZoneState {
@@ -45,11 +60,22 @@ export const useZoneStore = create<ZoneState>((set) => ({
           : state.selectedZone,
     })),
   
-  deleteZone: (id) =>
+  deleteZone: async (id) => {
+    // Delete from database
+    try {
+      await fetch(`/api/fields/${id}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Error deleting field:", error);
+    }
+
+    // Delete from store
     set((state) => ({
       zones: state.zones.filter((zone) => zone.id !== id),
       selectedZone: state.selectedZone?.id === id ? null : state.selectedZone,
-    })),
+    }));
+  },
   
   setSelectedZone: (zone) => set({ selectedZone: zone }),
   

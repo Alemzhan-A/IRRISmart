@@ -35,7 +35,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { icon: <Droplets className="h-5 w-5" />, label: "Map", href: "/" },
     { icon: <LayoutDashboard className="h-5 w-5" />, label: "Overview", href: "/overview" },
     { icon: <Calendar className="h-5 w-5" />, label: "Schedule", href: "/schedule" },
-    { icon: <BarChart3 className="h-5 w-5" />, label: "Analytics", href: "/analytics" },
   ];
 
   const generalItems: NavItem[] = [

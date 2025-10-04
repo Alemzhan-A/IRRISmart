@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { NotificationTestButton } from "@/components/notification-test-button";
-import { User, Bell, Lock, Globe, Save } from "lucide-react";
-import { useState } from "react";
+import { User, Bell, Lock, Globe, Save, Menu } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -26,49 +27,67 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="ml-64">
+      {/* Mobile Menu Button */}
+      <Button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        size="icon"
+        className="fixed top-4 left-4 z-[60] lg:hidden shadow-lg"
+        variant="default"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      <div className="lg:ml-64">
         <TopHeader />
-        
-        <main className="p-8">
+
+        <main className="p-4 md:p-6 lg:p-8">
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                <p className="text-gray-500 mt-1">Manage your account and application preferences.</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Settings</h1>
+                <p className="text-sm md:text-base text-gray-500 mt-1">Manage your account and application preferences.</p>
               </div>
-              <Button className="bg-primary hover:bg-primary/90 gap-2" onClick={handleSave}>
+              <Button className="bg-primary hover:bg-primary/90 gap-2 text-sm md:text-base" onClick={handleSave}>
                 <Save className="h-4 w-4" />
                 Save Changes
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Sidebar Navigation */}
-            <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/5 text-primary">
+            <div className="space-y-2 lg:block hidden">
+              <Button variant="ghost" className="w-full justify-start gap-2 bg-primary/5 text-primary text-sm">
                 <User className="h-4 w-4" />
                 Profile
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2">
+              <Button variant="ghost" className="w-full justify-start gap-2 text-sm">
                 <Bell className="h-4 w-4" />
                 Notifications
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2">
+              <Button variant="ghost" className="w-full justify-start gap-2 text-sm">
                 <Lock className="h-4 w-4" />
                 Security
               </Button>
-              <Button variant="ghost" className="w-full justify-start gap-2">
+              <Button variant="ghost" className="w-full justify-start gap-2 text-sm">
                 <Globe className="h-4 w-4" />
                 Preferences
               </Button>
             </div>
 
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               {/* Profile Information */}
               <Card>
                 <CardHeader>

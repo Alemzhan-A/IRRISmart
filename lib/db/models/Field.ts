@@ -4,6 +4,7 @@ export interface IField extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
   crop: string;
+  cropCategory: string; // Category ID from crop-categories.ts
   area: number;
   color: string;
   coordinates: number[][];
@@ -41,6 +42,11 @@ const FieldSchema = new Schema<IField>(
     crop: {
       type: String,
       required: [true, "Crop type is required"],
+      trim: true,
+    },
+    cropCategory: {
+      type: String,
+      required: [true, "Crop category is required"],
       trim: true,
     },
     area: {
