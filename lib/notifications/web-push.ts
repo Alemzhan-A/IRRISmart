@@ -19,7 +19,18 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 // Subscribe to push notifications
+import { isIOS, isIOSPWA, showIOSAlert } from "./ios-notifications";
+
 export async function subscribeToPushNotifications(): Promise<PushSubscription | null> {
+  // Prevent push subscription on iOS unless running as PWA
+  if (isIOS() && !isIOSPWA()) {
+    showIOSAlert(
+      "Notifications Not Available",
+      "To receive notifications on iPhone/iPad, install this app to your Home Screen as a PWA. Open in Safari, tap Share, then 'Add to Home Screen'."
+    );
+    return null;
+  }
+
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     console.error("Push notifications are not supported");
     return null;

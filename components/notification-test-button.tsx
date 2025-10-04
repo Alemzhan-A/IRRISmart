@@ -11,6 +11,7 @@ import {
   isIOS,
   isIOSPWA,
   sendUniversalNotification,
+  showIOSAlert,
 } from "@/lib/notifications/ios-notifications";
 
 export function NotificationTestButton() {
@@ -40,6 +41,14 @@ export function NotificationTestButton() {
   };
 
   const handleEnableNotifications = async () => {
+    // Prevent subscription attempts on iOS non-PWA, show guidance instead
+    if (isIOS() && !isIOSPWA()) {
+      showIOSAlert(
+        "Notifications Not Available",
+        "To receive notifications on iPhone/iPad, install this app to your Home Screen as a PWA. Open in Safari, tap Share, then 'Add to Home Screen'."
+      );
+      return;
+    }
     setIsLoading(true);
     try {
       const subscription = await subscribeToPushNotifications();
@@ -50,6 +59,7 @@ export function NotificationTestButton() {
           "You can now receive alerts from any device!"
         );
       } else {
+        // Only show error if not iOS non-PWA (already handled above)
         alert("Failed to enable notifications. Please try again.");
       }
     } catch (error) {
