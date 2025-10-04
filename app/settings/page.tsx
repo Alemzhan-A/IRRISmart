@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { NotificationTestButton } from "@/components/notification-test-button";
+// For push notification logic
+import { sendLowMoistureNotification } from "../../lib/notifications/send-low-moisture";
+// Simulate a low moisture notification with timer
+const MOISTURE_START = 40;
+const MOISTURE_MIN = 10;
+const MOISTURE_THRESHOLD = 20;
+const MOISTURE_STEP = 5;
+const MOISTURE_INTERVAL = 2000; // ms
 import { User, Bell, Lock, Globe, Save, Menu } from "lucide-react";
 
 export default function SettingsPage() {
@@ -19,6 +27,42 @@ export default function SettingsPage() {
     email: user?.email || "",
     farmName: user?.farmName || "",
   });
+
+  // Moisture simulation state
+  const [moisture, setMoisture] = useState(MOISTURE_START);
+  const [simActive, setSimActive] = useState(false);
+  const [notified, setNotified] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Simulate moisture drop and send notification
+  const startMoistureSim = () => {
+    if (simActive) return;
+    setSimActive(true);
+    setNotified(false);
+    setMoisture(MOISTURE_START);
+    timerRef.current = setInterval(() => {
+      setMoisture((prev) => {
+        const next = prev - MOISTURE_STEP;
+        if (next <= MOISTURE_THRESHOLD && !notified) {
+          // Send push notification (simulate)
+          sendLowMoistureNotification();
+          setNotified(true);
+        }
+        if (next <= MOISTURE_MIN) {
+          clearInterval(timerRef.current!);
+          setSimActive(false);
+        }
+        return next > MOISTURE_MIN ? next : MOISTURE_MIN;
+      });
+    }, MOISTURE_INTERVAL);
+  };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const handleSave = () => {
     // TODO: Implement save functionality
@@ -143,9 +187,33 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Test Notification Button */}
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 mb-2">
                     <p className="font-medium text-gray-900 mb-3">Push Notifications</p>
                     <NotificationTestButton />
+                  </div>
+                  {/* Moisture Simulation */}
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-2 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-blue-900">Low Moisture Simulation</span>
+                      <Badge className={moisture <= MOISTURE_THRESHOLD ? "bg-red-500" : "bg-green-500"}>
+                        {moisture <= MOISTURE_THRESHOLD ? "Low" : "Normal"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700">Current Moisture:</span>
+                      <span className="font-mono text-lg">{moisture}%</span>
+                    </div>
+                    <Button
+                      onClick={startMoistureSim}
+                      disabled={simActive}
+                      className="w-fit"
+                      variant="secondary"
+                    >
+                      {simActive ? "Simulating..." : "Simulate Low Moisture"}
+                    </Button>
+                    {notified && (
+                      <span className="text-xs text-red-600">Low moisture notification sent!</span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
@@ -154,7 +222,6 @@ export default function SettingsPage() {
                     </div>
                     <Badge className="bg-green-500">Enabled</Badge>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900">Low Moisture Warnings</p>
@@ -162,7 +229,6 @@ export default function SettingsPage() {
                     </div>
                     <Badge className="bg-green-500">Enabled</Badge>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900">Weather Updates</p>
@@ -170,7 +236,6 @@ export default function SettingsPage() {
                     </div>
                     <Badge className="bg-green-500">Enabled</Badge>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900">System Maintenance</p>
