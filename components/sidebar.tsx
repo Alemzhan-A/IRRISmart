@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  BarChart3, 
-  Settings, 
-  HelpCircle, 
+import {
+  LayoutDashboard,
+  Calendar,
+  Settings,
+  HelpCircle,
   LogOut,
   Droplets,
   User

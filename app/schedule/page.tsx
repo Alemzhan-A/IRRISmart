@@ -268,27 +268,26 @@ export default function SchedulePage() {
                       key={task.id}
                       className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
                     >
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-gray-900">{task.field}</h4>
+                            <h4 className="font-semibold text-gray-900">{task.name}</h4>
                             <Badge
                               className={`${getStatusColor(task.status)} text-white`}
                             >
                               {getStatusText(task.status)}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-600">{task.task}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {task.time}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Droplets className="h-3 w-3" />
-                          {task.duration}
+                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {task.time}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Droplets className="h-4 w-4" />
+                              {task.liters.toLocaleString()} L
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
